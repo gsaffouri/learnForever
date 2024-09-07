@@ -1,6 +1,6 @@
 # Provider configuration (AWS)
 provider "aws" {
-  region = "us-west-2"
+  region = var.region
 }
 
 # -----------------------------
@@ -9,19 +9,19 @@ provider "aws" {
 
 # Create a VPC
 resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
+  cidr_block = var.vpc_cidr
   tags = {
-    Name = "MainVPC"
+    Name = var.vpc_name
   }
 }
 
 # Create a Subnet in the VPC
 resource "aws_subnet" "main" {
   vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.1.0/24"
-  availability_zone = "us-west-2a"
+  cidr_block        = var.subnet_cidr
+  availability_zone = var.availability_zone
   tags = {
-    Name = "MainSubnet"
+    Name = var.subnet_name
   }
 }
 
@@ -29,7 +29,7 @@ resource "aws_subnet" "main" {
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
   tags = {
-    Name = "MainIGW"
+    Name = var.igw_name
   }
 }
 
@@ -43,7 +43,7 @@ resource "aws_route_table" "main" {
   }
 
   tags = {
-    Name = "MainRouteTable"
+    Name = var.route_table_name
   }
 }
 
@@ -61,25 +61,25 @@ resource "aws_security_group" "main" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  # SSH access from anywhere, adjust as needed
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  # HTTP access from anywhere
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]  # Allow all outbound traffic
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = {
-    Name = "MainSecurityGroup"
+    Name = var.security_group_name
   }
 }
 
@@ -89,16 +89,15 @@ resource "aws_security_group" "main" {
 
 # Create an EC2 instance within the VPC
 resource "aws_instance" "web" {
-  ami                    = "ami-0c55b159cbfafe1f0"  # AMI ID (use the appropriate AMI for your region)
-  instance_type          = "t2.micro"
+  ami                    = var.ami
+  instance_type          = var.instance_type
   subnet_id              = aws_subnet.main.id
   vpc_security_group_ids = [aws_security_group.main.id]
 
   tags = {
-    Name = "WebServer"
+    Name = var.ec2_instance_name
   }
 
-  # Add user data script if you want to initialize the instance with some commands
   user_data = <<-EOF
               #!/bin/bash
               sudo apt-get update
@@ -112,12 +111,11 @@ resource "aws_instance" "web" {
 
 # Create an S3 bucket
 resource "aws_s3_bucket" "my_bucket" {
-  bucket = "my-terraform-bucket-12345"  # Bucket names must be globally unique
-  acl    = "private"
+  bucket = var.s3_bucket_name
+  acl    = var.s3_acl
 
   tags = {
-    Name        = "MyS3Bucket"
-    Environment = "Dev"
+    Name = "MyS3Bucket"
   }
 }
 
@@ -127,41 +125,16 @@ resource "aws_s3_bucket" "my_bucket" {
 
 # Create a DynamoDB table
 resource "aws_dynamodb_table" "my_table" {
-  name           = "my-dynamodb-table"
+  name           = var.dynamodb_table_name
   billing_mode   = "PAY_PER_REQUEST"
   hash_key       = "id"
 
   attribute {
     name = "id"
-    type = "S"  # 'S' stands for string
+    type = "S"
   }
 
   tags = {
-    Name        = "MyDynamoDBTable"
-    Environment = "Dev"
+    Name = "MyDynamoDBTable"
   }
-}
-
-# -----------------------------
-# 5. Outputs
-# -----------------------------
-
-# Output the EC2 instance public IP
-output "instance_public_ip" {
-  value = aws_instance.web.public_ip
-}
-
-# Output the S3 bucket name
-output "s3_bucket_name" {
-  value = aws_s3_bucket.my_bucket.bucket
-}
-
-# Output the DynamoDB table name
-output "dynamodb_table_name" {
-  value = aws_dynamodb_table.my_table.name
-}
-
-# Output the VPC ID
-output "vpc_id" {
-  value = aws_vpc.main.id
 }
