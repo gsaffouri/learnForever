@@ -112,7 +112,6 @@ resource "aws_instance" "web" {
 # Create an S3 bucket
 resource "aws_s3_bucket" "my_bucket" {
   bucket = var.s3_bucket_name
-  acl    = var.s3_acl
 
   tags = {
     Name = "MyS3Bucket"
