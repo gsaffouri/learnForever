@@ -1,61 +1,75 @@
-# Provider configuration (AWS) info
+# Specify the AWS provider and region
 provider "aws" {
-  region = var.region
+  region = var.aws_region
 }
 
-# -----------------------------
-# 1. VPC Configuration
-# -----------------------------
+# Data source to get the latest Amazon Linux 2 AMI
+data "aws_ami" "latest_amazon_linux" {
+  most_recent = true
+  owners      = ["amazon"]
 
-# Create a VPC
-resource "aws_vpc" "main" {
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
+# VPC
+resource "aws_vpc" "main_vpc" {
   cidr_block = var.vpc_cidr
+
   tags = {
-    Name = var.vpc_name
+    Name = "main_vpc"
   }
 }
 
-# Create a Subnet in the VPC
-resource "aws_subnet" "main" {
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = var.subnet_cidr
-  availability_zone = var.availability_zone
+# Public Subnet
+resource "aws_subnet" "public_subnet" {
+  vpc_id     = aws_vpc.main_vpc.id
+  cidr_block = var.subnet_cidr
+
   tags = {
-    Name = var.subnet_name
+    Name = "public_subnet"
   }
 }
 
-# Create an Internet Gateway for the VPC
-resource "aws_internet_gateway" "main" {
-  vpc_id = aws_vpc.main.id
+# Internet Gateway
+resource "aws_internet_gateway" "gw" {
+  vpc_id = aws_vpc.main_vpc.id
+
   tags = {
-    Name = var.igw_name
+    Name = "main_internet_gateway"
   }
 }
 
-# Create a Route Table for the VPC
-resource "aws_route_table" "main" {
-  vpc_id = aws_vpc.main.id
+# Route Table
+resource "aws_route_table" "public_rt" {
+  vpc_id = aws_vpc.main_vpc.id
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.main.id
+    gateway_id = aws_internet_gateway.gw.id
   }
 
   tags = {
-    Name = var.route_table_name
+    Name = "public_route_table"
   }
 }
 
 # Associate Route Table with Subnet
-resource "aws_route_table_association" "main" {
-  subnet_id      = aws_subnet.main.id
-  route_table_id = aws_route_table.main.id
+resource "aws_route_table_association" "public_rt_assoc" {
+  subnet_id      = aws_subnet.public_subnet.id
+  route_table_id = aws_route_table.public_rt.id
 }
 
-# Create a Security Group that allows SSH and HTTP
-resource "aws_security_group" "main" {
-  vpc_id = aws_vpc.main.id
+# Security Group for the EC2 instance
+resource "aws_security_group" "ec2_security_group" {
+  vpc_id = aws_vpc.main_vpc.id
 
   ingress {
     from_port   = 22
@@ -79,54 +93,38 @@ resource "aws_security_group" "main" {
   }
 
   tags = {
-    Name = var.security_group_name
+    Name = "ec2_security_group"
   }
 }
 
-# -----------------------------
-# 2. EC2 Instance Configuration
-# -----------------------------
-
-# Create an EC2 instance within the VPC
-resource "aws_instance" "web" {
-  ami                    = var.ami
-  instance_type          = var.instance_type
-  subnet_id              = aws_subnet.main.id
-  vpc_security_group_ids = [aws_security_group.main.id]
+# EC2 Instance
+resource "aws_instance" "example" {
+  ami           = data.aws_ami.latest_amazon_linux.id
+  instance_type = var.instance_type
+  subnet_id     = aws_subnet.public_subnet.id
+  security_groups = [
+    aws_security_group.ec2_security_group.name
+  ]
 
   tags = {
-    Name = var.ec2_instance_name
+    Name = "Terraform-EC2-Instance"
   }
-
-  user_data = <<-EOF
-              #!/bin/bash
-              sudo apt-get update
-              sudo apt-get install -y nginx
-              EOF
 }
 
-# -----------------------------
-# 3. S3 Bucket Configuration
-# -----------------------------
-
-# Create an S3 bucket
-resource "aws_s3_bucket" "my_bucket" {
+# S3 Bucket
+resource "aws_s3_bucket" "bucket" {
   bucket = var.s3_bucket_name
 
   tags = {
-    Name = "MyS3Bucket"
+    Name = "Terraform-S3-Bucket"
   }
 }
 
-# -----------------------------
-# 4. DynamoDB Table Configuration
-# -----------------------------
-
-# Create a DynamoDB table
-resource "aws_dynamodb_table" "my_table" {
+# DynamoDB Table
+resource "aws_dynamodb_table" "dynamodb_table" {
   name           = var.dynamodb_table_name
-  billing_mode   = "PAY_PER_REQUEST"
   hash_key       = "id"
+  billing_mode   = "PAY_PER_REQUEST"
 
   attribute {
     name = "id"
@@ -134,6 +132,7 @@ resource "aws_dynamodb_table" "my_table" {
   }
 
   tags = {
-    Name = "MyDynamoDBTable"
+    Name = "Terraform-DynamoDB-Table"
   }
 }
+
