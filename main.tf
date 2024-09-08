@@ -1,4 +1,4 @@
-# Provider configuration (AWS)
+# Provider configuration (AWS) info
 provider "aws" {
   region = var.region
 }
