@@ -19,6 +19,20 @@ data "aws_ami" "latest_amazon_linux" {
   }
 }
 
+# EC2 Instance
+resource "aws_instance" "example" {
+  ami           = data.aws_ami.latest_amazon_linux.id
+  instance_type = var.instance_type
+  subnet_id     = aws_subnet.public_subnet.id
+  security_groups = [
+    aws_security_group.ec2_security_group.name
+  ]
+
+  tags = {
+    Name = "Terraform-EC2-Instance"
+  }
+}
+
 # VPC
 resource "aws_vpc" "main_vpc" {
   cidr_block = var.vpc_cidr
@@ -94,20 +108,6 @@ resource "aws_security_group" "ec2_security_group" {
 
   tags = {
     Name = "ec2_security_group"
-  }
-}
-
-# EC2 Instance
-resource "aws_instance" "example" {
-  ami           = data.aws_ami.latest_amazon_linux.id
-  instance_type = var.instance_type
-  subnet_id     = aws_subnet.public_subnet.id
-  security_groups = [
-    aws_security_group.ec2_security_group.name
-  ]
-
-  tags = {
-    Name = "Terraform-EC2-Instance"
   }
 }
 

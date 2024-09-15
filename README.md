@@ -1,6 +1,6 @@
 # Terraform Simple Deployment
 
-This project demonstrates a basic Terraform deployment to manage infrastructure as code. It deploys a simple Virtual Machine (VM) on a cloud provider (e.g., AWS, Google Cloud) using Terraform.
+This project demonstrates a basic Terraform deployment to manage infrastructure as code. It deploys a simple on a cloud provider (e.g., AWS, Google Cloud) using Terraform.
 
 ## Prerequisites
 
@@ -17,3 +17,7 @@ Before you begin, ensure you have the following tools installed:
 
 ## Project Structure
 
+# How to run the deployment
+- Login to AWS playground
+- Retrieve Access and Secret Access Keys
+- Run 'aws configure' in the terminal and input the keys
