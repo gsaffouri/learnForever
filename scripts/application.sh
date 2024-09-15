@@ -20,7 +20,7 @@ cat <<EOF > $WEB_DIR/index.html
     <title>My Web App</title>
 </head>
 <body>
-    <h1>Hello from my Dockerized Web App!</h1>
+    <h1>Hello from George Saffouris Dockerized Web Application :)!</h1>
 </body>
 </html>
 EOF
