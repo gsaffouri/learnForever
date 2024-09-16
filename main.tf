@@ -25,7 +25,7 @@ resource "aws_instance" "example" {
   instance_type = var.instance_type
   subnet_id     = aws_subnet.public_subnet.id
   security_groups = [
-    aws_security_group.ec2_security_group.name
+  #  aws_security_group.ec2_security_group.name
   ]
 
   tags = {
